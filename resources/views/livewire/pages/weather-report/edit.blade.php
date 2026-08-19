@@ -53,6 +53,13 @@
         </div>
     </flux:card>
 
+    {{-- Settings --}}
+    <flux:card class="mt-6">
+        <flux:heading level="3" size="lg" class="mb-4">Weather Report Settings</flux:heading>
+
+        <flux:switch wire:model.live="mentionsBeans" align="left" label="Ping the Beans role" />
+    </flux:card>
+
     {{-- Create Modal --}}
     <flux:modal name="create-weather-report-city" class="space-y-6 md:w-96">
         @if (is_null($selectedCity))

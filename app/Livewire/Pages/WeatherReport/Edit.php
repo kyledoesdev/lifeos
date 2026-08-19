@@ -3,6 +3,7 @@
 namespace App\Livewire\Pages\WeatherReport;
 
 use App\Actions\Api\Geocodio\SearchCities;
+use App\Enums\Discord\PingBeansRole;
 use App\Livewire\Concerns\HasTableHelpers;
 use App\Livewire\Forms\WeatherReportCityForm;
 use App\Models\WeatherReportCity;
@@ -26,6 +27,8 @@ class Edit extends Component
 
     public string $phrase = '';
 
+    public bool $mentionsBeans = false;
+
     /**
      * An empty sort defers to the model's default state then city ordering.
      */
@@ -33,6 +36,21 @@ class Edit extends Component
     {
         $this->sortBy = '';
         $this->sortDirection = 'asc';
+
+        $this->mentionsBeans = PingBeansRole::WEATHER_REPORT->enabled();
+    }
+
+    public function updatedMentionsBeans(bool $enabled): void
+    {
+        PingBeansRole::WEATHER_REPORT->set($enabled);
+
+        Flux::toast(
+            variant: 'success',
+            text: $enabled
+                ? 'The Beans role will be pinged with the daily weather report.'
+                : 'The Beans role will no longer be pinged.',
+            duration: 3000,
+        );
     }
 
     public function render()

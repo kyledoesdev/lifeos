@@ -3,11 +3,14 @@
 namespace App\Console\Commands\Discord;
 
 use App\Actions\Api\Weather\GetDailyForecast;
+use App\Enums\Discord\PingBeansRole;
 use App\Enums\WeatherCondition;
 use App\Models\WeatherReportCity;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SendDailyWeatherReport extends Command
 {
@@ -29,7 +32,7 @@ class SendDailyWeatherReport extends Command
             ->all();
 
         if ($cities === []) {
-            $this->error('No weather report cities have been configured.');
+            $this->reportFailure('No weather report cities have been configured.');
 
             return self::FAILURE;
         }
@@ -37,18 +40,33 @@ class SendDailyWeatherReport extends Command
         $forecasts = (new GetDailyForecast)->handle($cities);
 
         if ($forecasts->isEmpty()) {
-            $this->error('Failed to retrieve the daily weather report.');
+            $this->reportFailure('Failed to retrieve the daily weather report.', [
+                'cities' => count($cities),
+            ]);
 
             return self::FAILURE;
         }
 
-        $response = Http::post(
-            config('services.discord.royalty.weather-report.webhook_url'),
-            $this->buildPayload($forecasts)
-        );
+        try {
+            $response = Http::timeout(15)
+                ->retry(3, 2000, throw: false)
+                ->post(
+                    config('services.discord.royalty.weather-report.webhook_url'),
+                    $this->buildPayload($forecasts)
+                );
+        } catch (ConnectionException $e) {
+            $this->reportFailure('Could not reach Discord to send the daily weather report.', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return self::FAILURE;
+        }
 
         if ($response->failed()) {
-            $this->error('Failed to send the daily weather report to Discord.');
+            $this->reportFailure('Failed to send the daily weather report to Discord.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
 
             return self::FAILURE;
         }
@@ -70,7 +88,7 @@ class SendDailyWeatherReport extends Command
 
         $roleId = config('services.discord.royalty.roles.beans');
 
-        if (! $roleId) {
+        if (! $roleId || ! PingBeansRole::WEATHER_REPORT->enabled()) {
             return $payload;
         }
 
@@ -121,5 +139,12 @@ class SendDailyWeatherReport extends Command
             "**{$forecast['high']}° / {$forecast['low']}°** · {$forecast['condition']->label()} · Feels like {$forecast['feels_like']}°",
             $conditions,
         ]);
+    }
+
+    private function reportFailure(string $message, array $context = []): void
+    {
+        $this->error($message);
+
+        Log::error("[royal-tea:weather-report] {$message}", $context);
     }
 }
