@@ -4,8 +4,10 @@ namespace App\Actions\Api\Weather;
 
 use App\Enums\WeatherCondition;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 final class GetDailyForecast
 {
@@ -29,20 +31,33 @@ final class GetDailyForecast
             return collect();
         }
 
-        $response = Http::timeout(15)
-            ->retry(2, 500, throw: false)
-            ->get(self::ENDPOINT, [
-                'latitude' => collect($cities)->pluck('latitude')->implode(','),
-                'longitude' => collect($cities)->pluck('longitude')->implode(','),
-                'daily' => implode(',', self::DAILY_METRICS),
-                'temperature_unit' => 'fahrenheit',
-                'wind_speed_unit' => 'mph',
-                'precipitation_unit' => 'inch',
-                'timezone' => 'auto',
-                'forecast_days' => 1,
+        try {
+            $response = Http::timeout(15)
+                ->retry(4, 3000, throw: false)
+                ->get(self::ENDPOINT, [
+                    'latitude' => collect($cities)->pluck('latitude')->implode(','),
+                    'longitude' => collect($cities)->pluck('longitude')->implode(','),
+                    'daily' => implode(',', self::DAILY_METRICS),
+                    'temperature_unit' => 'fahrenheit',
+                    'wind_speed_unit' => 'mph',
+                    'precipitation_unit' => 'inch',
+                    'timezone' => 'auto',
+                    'forecast_days' => 1,
+                ]);
+        } catch (ConnectionException $e) {
+            Log::error('[open-meteo] Could not reach the forecast API.', [
+                'message' => $e->getMessage(),
             ]);
 
+            return collect();
+        }
+
         if ($response->failed()) {
+            Log::error('[open-meteo] Forecast request failed.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
             return collect();
         }
 

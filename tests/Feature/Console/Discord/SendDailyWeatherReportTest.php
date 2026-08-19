@@ -1,15 +1,20 @@
 <?php
 
 use App\Actions\Api\Weather\GetDailyForecast;
+use App\Enums\Discord\PingBeansRole;
 use App\Enums\WeatherCondition;
 use App\Models\WeatherReportCity;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 
 const WEATHER_WEBHOOK = 'https://discord.com/api/webhooks/weather-report';
 
 beforeEach(function () {
     config()->set('services.discord.royalty.weather-report.webhook_url', WEATHER_WEBHOOK);
+
+    Sleep::fake();
 
     WeatherReportCity::factory()->philadelphia()->create();
 });
@@ -140,6 +145,7 @@ it('stacks every city on its own row', function () {
 
 it('mentions the beans role above the embed', function () {
     config()->set('services.discord.royalty.roles.beans', '1234567890123456789');
+    PingBeansRole::WEATHER_REPORT->set(true);
 
     Http::fake([
         'api.open-meteo.com/*' => Http::response(openMeteoLocation()),
@@ -162,6 +168,7 @@ it('mentions the beans role above the embed', function () {
 
 it('sends without a mention when the beans role is not configured', function () {
     config()->set('services.discord.royalty.roles.beans', null);
+    PingBeansRole::WEATHER_REPORT->set(true);
 
     Http::fake([
         'api.open-meteo.com/*' => Http::response(openMeteoLocation()),
@@ -177,6 +184,29 @@ it('sends without a mention when the beans role is not configured', function () 
 
         expect($request->data())->not->toHaveKey('content')
             ->and($request->data())->not->toHaveKey('allowed_mentions');
+
+        return true;
+    });
+});
+
+it('sends without a mention while the beans toggle is off', function () {
+    config()->set('services.discord.royalty.roles.beans', '1234567890123456789');
+
+    Http::fake([
+        'api.open-meteo.com/*' => Http::response(openMeteoLocation()),
+        WEATHER_WEBHOOK => Http::response('', 204),
+    ]);
+
+    $this->artisan('royal-tea:weather-report')->assertSuccessful();
+
+    Http::assertSent(function (Request $request) {
+        if ($request->url() !== WEATHER_WEBHOOK) {
+            return false;
+        }
+
+        expect($request->data())->not->toHaveKey('content')
+            ->and($request->data())->not->toHaveKey('allowed_mentions')
+            ->and($request->data())->toHaveKey('embeds');
 
         return true;
     });
@@ -234,6 +264,57 @@ it('fails when discord rejects the webhook', function () {
 
     $this->artisan('royal-tea:weather-report')
         ->expectsOutputToContain('Failed to send the daily weather report to Discord.')
+        ->assertFailed();
+});
+
+it('retries a rate limited discord webhook before giving up', function () {
+    Http::fake([
+        'api.open-meteo.com/*' => Http::response(openMeteoLocation()),
+        WEATHER_WEBHOOK => Http::sequence()
+            ->push('', 429)
+            ->push('', 429)
+            ->push('', 204),
+    ]);
+
+    $this->artisan('royal-tea:weather-report')->assertSuccessful();
+
+    Http::assertSentCount(4);
+});
+
+it('retries a throttled weather api before giving up', function () {
+    Http::fake([
+        'api.open-meteo.com/*' => Http::sequence()
+            ->push('', 429)
+            ->push(openMeteoLocation(), 200),
+        WEATHER_WEBHOOK => Http::response('', 204),
+    ]);
+
+    $this->artisan('royal-tea:weather-report')->assertSuccessful();
+
+    Http::assertSentCount(3);
+});
+
+it('fails gracefully when the weather api cannot be reached', function () {
+    Http::fake([
+        'api.open-meteo.com/*' => fn () => throw new ConnectionException('cURL error 28: Operation timed out'),
+        WEATHER_WEBHOOK => Http::response('', 204),
+    ]);
+
+    $this->artisan('royal-tea:weather-report')
+        ->expectsOutputToContain('Failed to retrieve the daily weather report.')
+        ->assertFailed();
+
+    Http::assertNotSent(fn (Request $request) => $request->url() === WEATHER_WEBHOOK);
+});
+
+it('fails gracefully when discord cannot be reached', function () {
+    Http::fake([
+        'api.open-meteo.com/*' => Http::response(openMeteoLocation()),
+        WEATHER_WEBHOOK => fn () => throw new ConnectionException('cURL error 6: Could not resolve host'),
+    ]);
+
+    $this->artisan('royal-tea:weather-report')
+        ->expectsOutputToContain('Could not reach Discord to send the daily weather report.')
         ->assertFailed();
 });
 

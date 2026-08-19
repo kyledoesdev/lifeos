@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Discord\PingBeansRole;
 use App\Livewire\Pages\WeatherReport\Edit;
 use App\Livewire\Pages\WeatherReport\Tables\Row;
 use App\Models\User;
@@ -186,6 +187,27 @@ it('deletes a city from its row', function () {
         ->assertDispatched('weather-report-city-deleted');
 
     expect(WeatherReportCity::query()->count())->toBe(0);
+});
+
+it('persists the beans mention toggle to the cache store', function () {
+    Livewire::test(Edit::class)
+        ->assertSet('mentionsBeans', false)
+        ->set('mentionsBeans', true);
+
+    expect(PingBeansRole::WEATHER_REPORT->enabled())->toBeTrue();
+
+    Livewire::test(Edit::class)
+        ->assertSet('mentionsBeans', true)
+        ->set('mentionsBeans', false);
+
+    expect(PingBeansRole::WEATHER_REPORT->enabled())->toBeFalse();
+});
+
+it('shows the beans mention toggle on the page', function () {
+    $this->get(route('weather_report.edit'))
+        ->assertOk()
+        ->assertSee('Weather Report Settings')
+        ->assertSee('Ping the Beans role');
 });
 
 function geocodioResult(string $city = 'Philadelphia', string $state = 'PA', float $lat = 39.9526, float $lng = -75.1652): array
