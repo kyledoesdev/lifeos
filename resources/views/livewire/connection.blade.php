@@ -12,8 +12,15 @@
             'twitch' => [
                 'connection' => auth()->user()->connections->firstWhere('type', App\Enums\ConnectionType::TWITCH->value),
                 'icon' => 'tv',
-                'color' => 'purple', 
+                'color' => 'purple',
                 'name' => 'Twitch'
+            ],
+            'bluesky' => [
+                'connection' => auth()->user()->connections->firstWhere('type', App\Enums\ConnectionType::BLUESKY->value),
+                'icon' => 'at-symbol',
+                'color' => 'sky',
+                'name' => 'Bluesky',
+                'action' => 'connectBluesky',
             ]
         ];
     @endphp
@@ -35,15 +42,26 @@
                             @endif
                         </div>
                     </div>
-                    
-                    <flux:button 
-                        variant="outline" 
-                        :size="$config['connection'] ? 'sm' : 'base'"
-                        :icon="$config['icon']"
-                        :href="route('connect', ['type' => $type])"
-                    >
-                        {{ $config['connection'] ? 'Reconnect' : 'Connect' }} {{ $config['name'] }}
-                    </flux:button>
+
+                    @isset($config['action'])
+                        <flux:button
+                            variant="outline"
+                            :size="$config['connection'] ? 'sm' : 'base'"
+                            :icon="$config['icon']"
+                            wire:click="{{ $config['action'] }}"
+                        >
+                            {{ $config['connection'] ? 'Reconnect' : 'Connect' }} {{ $config['name'] }}
+                        </flux:button>
+                    @else
+                        <flux:button
+                            variant="outline"
+                            :size="$config['connection'] ? 'sm' : 'base'"
+                            :icon="$config['icon']"
+                            :href="route('connect', ['type' => $type])"
+                        >
+                            {{ $config['connection'] ? 'Reconnect' : 'Connect' }} {{ $config['name'] }}
+                        </flux:button>
+                    @endisset
                 </div>
             @endforeach
         </div>

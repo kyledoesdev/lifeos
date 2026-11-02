@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
@@ -30,5 +31,18 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Model::automaticallyEagerLoadRelationships();
+
+        $this->configureDevTerminal();
+    }
+
+    private function configureDevTerminal(): void
+    {
+        if (! $this->app->runningInConsole() || $this->app->runningUnitTests() || $this->app->isProduction()) {
+            return;
+        }
+
+        DevCommands::except('server', 'logs');
+        DevCommands::node('dev', 'vite')->yellow();
+        DevCommands::artisan('queue:listen --tries=1 --timeout=0', 'queue')->purple();
     }
 }

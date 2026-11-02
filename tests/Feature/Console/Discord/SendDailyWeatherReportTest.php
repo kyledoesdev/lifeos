@@ -145,7 +145,7 @@ it('stacks every city on its own row', function () {
 
 it('mentions the beans role above the embed', function () {
     config()->set('services.discord.royalty.roles.beans', '1234567890123456789');
-    PingBeansRole::WEATHER_REPORT->set(true);
+    PingBeansRole::WEATHER_REPORT->setEnabled(true);
 
     Http::fake([
         'api.open-meteo.com/*' => Http::response(openMeteoLocation()),
@@ -168,7 +168,7 @@ it('mentions the beans role above the embed', function () {
 
 it('sends without a mention when the beans role is not configured', function () {
     config()->set('services.discord.royalty.roles.beans', null);
-    PingBeansRole::WEATHER_REPORT->set(true);
+    PingBeansRole::WEATHER_REPORT->setEnabled(true);
 
     Http::fake([
         'api.open-meteo.com/*' => Http::response(openMeteoLocation()),

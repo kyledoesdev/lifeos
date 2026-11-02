@@ -76,6 +76,12 @@
 
             <flux:card>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <a href="{{ route('live_streams.edit') }}">
+                        <flux:card class="flex space-x-2">
+                            <flux:icon.video-camera />
+                            <span>Live Streams</span>
+                        </flux:card>
+                    </a>
                     <a href="{{ route('weather_report.edit') }}">
                         <flux:card class="flex space-x-2">
                             <flux:icon.cloud />

@@ -37,9 +37,11 @@
                 <flux:navmenu.item icon="command-line" href="{{ route('technologies') }}">
                     Technology
                 </flux:navmenu.item>
-                <flux:navmenu.item icon="document-text" href="{{ route('asset', ['slug' => $resume]) }}" target="_blank">
-                    Resume
-                </flux:navmenu.item>
+                @if ($resume)
+                    <flux:navmenu.item icon="document-text" href="{{ route('asset', ['slug' => $resume]) }}" target="_blank">
+                        Resume
+                    </flux:navmenu.item>
+                @endif
             </flux:navmenu>
         </flux:dropdown>
 
@@ -145,9 +147,11 @@
                 <flux:navmenu.item icon="photo" href="{{ route('gallery') }}">
                     Photo Gallery
                 </flux:navmenu.item>
-                <flux:navmenu.item icon="document-text" href="{{ route('asset', ['slug' => $resume]) }}" target="_blank">
-                    Resume
-                </flux:navmenu.item>
+                @if ($resume)
+                    <flux:navmenu.item icon="document-text" href="{{ route('asset', ['slug' => $resume]) }}" target="_blank">
+                        Resume
+                    </flux:navmenu.item>
+                @endif
             </flux:navlist.group>
 
             <flux:navlist.group

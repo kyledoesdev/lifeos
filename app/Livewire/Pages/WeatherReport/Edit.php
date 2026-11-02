@@ -42,7 +42,7 @@ class Edit extends Component
 
     public function updatedMentionsBeans(bool $enabled): void
     {
-        PingBeansRole::WEATHER_REPORT->set($enabled);
+        PingBeansRole::WEATHER_REPORT->setEnabled($enabled);
 
         Flux::toast(
             variant: 'success',
