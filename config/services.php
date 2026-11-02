@@ -30,6 +30,13 @@ return [
         'client_id' => env('TWITCH_CLIENT_ID'),
         'client_secret' => env('TWITCH_CLIENT_SECRET'),
         'redirect' => env('CONNECTION_REDIRECT'),
+        'channel' => env('TWITCH_CHANNEL', 'spacelampsix'),
+    ],
+
+    'bluesky' => [
+        'service' => env('BLUESKY_SERVICE', 'https://bsky.social'),
+        'handle' => env('BLUESKY_HANDLE'),
+        'app_password' => env('BLUESKY_APP_PASSWORD'),
     ],
 
     'movie_db' => [

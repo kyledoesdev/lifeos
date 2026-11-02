@@ -16,5 +16,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(WeatherReportCitySeeder::class);
+        $this->call(LiveStreamSeeder::class);
     }
 }
