@@ -16,6 +16,7 @@ use App\Livewire\Media\Music\Edit as EditMusic;
 use App\Livewire\Media\Music\Show as ShowMusic;
 use App\Livewire\Media\Tv\Edit as EditTv;
 use App\Livewire\Media\Tv\Show as ShowTv;
+use App\Livewire\Pages\Discord\BeansStats\Show as ShowBeansStats;
 use App\Livewire\Pages\LiveStreams\Edit as EditLiveStreams;
 use App\Livewire\Pages\Technologies\Edit as EditTechnologies;
 use App\Livewire\Pages\Technologies\Show as ShowTechnologies;
@@ -75,6 +76,7 @@ Route::middleware(Authenticate::class)->group(function () {
 
     Route::livewire('/weather_report/edit', EditWeatherReport::class)->name('weather_report.edit');
     Route::livewire('/live_streams/edit', EditLiveStreams::class)->name('live_streams.edit');
+    Route::livewire('/beans', ShowBeansStats::class)->name('beans_stats');
 });
 
 require __DIR__.'/auth.php';
