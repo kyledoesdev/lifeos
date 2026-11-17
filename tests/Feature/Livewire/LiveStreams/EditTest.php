@@ -134,12 +134,14 @@ it('rejects an unknown platform', function () {
         ->assertStatus(422);
 });
 
-it('persists the platform switch to the cache store', function () {
+it('persists the platform switch to the database', function () {
     Livewire::test(Edit::class)
         ->assertSet('enabled.bluesky', false)
         ->set('enabled.bluesky', true);
 
     expect(SocialPlatform::BLUESKY->enabled())->toBeTrue();
+
+    $this->assertDatabaseHas('social_platforms', ['platform' => 'bluesky', 'enabled' => true]);
 
     Livewire::test(Edit::class)
         ->assertSet('enabled.bluesky', true)
@@ -169,7 +171,7 @@ it('saves a custom template', function () {
         ->call('saveTemplate', 'bluesky')
         ->assertHasNoErrors();
 
-    expect(SocialPlatform::BLUESKY->liveStreamTemplate())->toBe('Live with {category}! {url}');
+    $this->assertDatabaseHas('social_platforms', ['platform' => 'bluesky', 'live_stream_template' => 'Live with {category}! {url}']);
 });
 
 it('rejects a template that is empty or too long', function () {
@@ -189,14 +191,14 @@ it('rejects a template that is empty or too long', function () {
 it('resets a template to the default', function () {
     $default = SocialPlatform::BLUESKY->liveStreamTemplate();
 
-    SocialPlatform::BLUESKY->setLiveStreamTemplate('Custom {url}');
+    SocialPlatform::BLUESKY->settings()->fill(['live_stream_template' => 'Custom {url}'])->save();
 
     Livewire::test(Edit::class)
         ->assertSet('templateForm.templates.bluesky', 'Custom {url}')
         ->call('resetTemplate', 'bluesky')
         ->assertSet('templateForm.templates.bluesky', $default);
 
-    expect(SocialPlatform::BLUESKY->liveStreamTemplate())->toBe($default);
+    expect(SocialPlatform::BLUESKY->settings()->live_stream_template)->toBeNull();
 });
 
 it('searches twitch and adds a rule for a category', function () {
@@ -292,6 +294,75 @@ it('deletes a rule', function () {
         ->assertOk();
 
     expect(StreamCategoryRule::query()->count())->toBe(0);
+});
+
+it('opens the template editor for a rule', function () {
+    $rule = StreamCategoryRule::factory()->minecraft()->withTemplate('Mining! {url}')->create();
+
+    Livewire::test(Edit::class)
+        ->call('editTemplate', $rule->id)
+        ->assertSet('categoryTemplateForm.rule_id', $rule->id)
+        ->assertSet('categoryTemplateForm.templates.bluesky', 'Mining! {url}')
+        ->assertSee('Custom post');
+});
+
+it('saves a category template', function () {
+    $rule = StreamCategoryRule::factory()->minecraft()->create();
+
+    Livewire::test(Edit::class)
+        ->assertDontSee('Custom post')
+        ->call('editTemplate', $rule->id)
+        ->assertSet('categoryTemplateForm.templates.bluesky', '')
+        ->set('categoryTemplateForm.templates.bluesky', 'Mining! {url}')
+        ->call('saveCategoryTemplate', 'bluesky')
+        ->assertHasNoErrors()
+        ->assertSee('Custom post');
+
+    expect($rule->fresh()->templateFor(SocialPlatform::BLUESKY))->toBe('Mining! {url}');
+
+    Livewire::test(Edit::class)
+        ->call('editTemplate', $rule->id)
+        ->set('categoryTemplateForm.templates.bluesky', 'Digging! {url}')
+        ->call('saveCategoryTemplate', 'bluesky');
+
+    expect($rule->templates()->count())->toBe(1)
+        ->and($rule->fresh()->templateFor(SocialPlatform::BLUESKY))->toBe('Digging! {url}');
+});
+
+it('rejects a category template that is empty or too long', function () {
+    $rule = StreamCategoryRule::factory()->minecraft()->create();
+
+    Livewire::test(Edit::class)
+        ->call('editTemplate', $rule->id)
+        ->call('saveCategoryTemplate', 'bluesky')
+        ->assertHasErrors(['categoryTemplateForm.templates.bluesky' => 'required'])
+        ->set('categoryTemplateForm.templates.bluesky', str_repeat('a', 301))
+        ->call('saveCategoryTemplate', 'bluesky')
+        ->assertHasErrors(['categoryTemplateForm.templates.bluesky' => 'max'])
+        ->call('saveCategoryTemplate', 'nope')
+        ->assertStatus(422);
+
+    expect($rule->templates()->count())->toBe(0);
+});
+
+it('clears a category template back to the platform template', function () {
+    $rule = StreamCategoryRule::factory()->minecraft()->withTemplate('Mining! {url}')->create();
+
+    Livewire::test(Edit::class)
+        ->call('editTemplate', $rule->id)
+        ->call('clearCategoryTemplate', 'bluesky')
+        ->assertSet('categoryTemplateForm.templates.bluesky', '')
+        ->assertDontSee('Custom post');
+
+    expect($rule->templates()->count())->toBe(0);
+});
+
+it('deletes the templates with their rule', function () {
+    $rule = StreamCategoryRule::factory()->minecraft()->withTemplate('Mining! {url}')->create();
+
+    Livewire::test(Edit::class)->call('destroyRule', $rule->id);
+
+    $this->assertDatabaseCount('stream_category_templates', 0);
 });
 
 function fakeTwitchCategorySearch(User $user): void

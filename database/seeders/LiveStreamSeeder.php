@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\SocialPlatform;
 use App\Models\LiveStream;
 use App\Models\SocialMediaPost;
 use App\Models\StreamCategoryRule;
@@ -11,7 +12,9 @@ class LiveStreamSeeder extends Seeder
 {
     public function run(): void
     {
-        StreamCategoryRule::factory()->minecraft()->create();
+        SocialPlatform::BLUESKY->settings()->fill(['enabled' => true])->save();
+
+        StreamCategoryRule::factory()->minecraft()->withTemplate("⛏️ Mining time on Twitch!\n\n{title}\n\n{url}")->create();
 
         $minecraft = LiveStream::factory()->ended()->create([
             'started_at' => now()->subDays(3),

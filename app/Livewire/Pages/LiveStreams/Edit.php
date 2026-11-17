@@ -8,6 +8,7 @@ use App\Enums\SocialPlatform;
 use App\Livewire\Concerns\HasTableHelpers;
 use App\Livewire\Forms\LiveStreamTemplateForm;
 use App\Livewire\Forms\StreamCategoryRuleForm;
+use App\Livewire\Forms\StreamCategoryTemplateForm;
 use App\Models\LiveStream;
 use App\Models\StreamCategoryRule;
 use Flux\Flux;
@@ -24,6 +25,8 @@ class Edit extends Component
     public StreamCategoryRuleForm $ruleForm;
 
     public LiveStreamTemplateForm $templateForm;
+
+    public StreamCategoryTemplateForm $categoryTemplateForm;
 
     /**
      * @var array<string, bool>
@@ -72,7 +75,7 @@ class Edit extends Component
     #[Computed]
     public function categoryRules()
     {
-        return StreamCategoryRule::query()->orderBy('category_name')->get();
+        return StreamCategoryRule::query()->with('templates')->orderBy('category_name')->get();
     }
 
     public function updatedSearch(): void
@@ -116,7 +119,7 @@ class Edit extends Component
     {
         $platform = SocialPlatform::tryFrom($platform) ?? abort(422);
 
-        $platform->setEnabled($enabled);
+        $platform->settings()->fill(['enabled' => $enabled])->save();
 
         Flux::toast(
             variant: 'success',
@@ -183,6 +186,27 @@ class Edit extends Component
         $platform = SocialPlatform::tryFrom($platform) ?? abort(422);
 
         StreamCategoryRule::findOrFail($ruleId)->togglePlatform($platform);
+    }
+
+    public function editTemplate(int $ruleId): void
+    {
+        $this->categoryTemplateForm->fillFromRule(StreamCategoryRule::with('templates')->findOrFail($ruleId));
+
+        Flux::modal('edit-stream-category-template')->show();
+    }
+
+    public function saveCategoryTemplate(string $platform): void
+    {
+        $this->categoryTemplateForm->save(SocialPlatform::tryFrom($platform) ?? abort(422));
+
+        unset($this->categoryRules);
+    }
+
+    public function clearCategoryTemplate(string $platform): void
+    {
+        $this->categoryTemplateForm->clear(SocialPlatform::tryFrom($platform) ?? abort(422));
+
+        unset($this->categoryRules);
     }
 
     public function destroyRule(int $ruleId): void

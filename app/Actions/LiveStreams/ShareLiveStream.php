@@ -20,7 +20,7 @@ final class ShareLiveStream
      */
     public function handle(LiveStream $stream, User $user): array
     {
-        $rule = StreamCategoryRule::query()->firstWhere('category_id', $stream->category_id);
+        $rule = $this->ruleFor($stream);
 
         return collect(SocialPlatform::cases())
             ->mapWithKeys(fn (SocialPlatform $platform): array => [
@@ -35,13 +35,14 @@ final class ShareLiveStream
     }
 
     /**
-     * Post to a single platform regardless of its switch or the category rules.
+     * Post to a single platform regardless of its switch or the category rules,
+     * though a category's own template is still used when it has one.
      */
     public function shareTo(LiveStream $stream, SocialPlatform $platform, User $user): SocialMediaPost
     {
         return (new PublishSocialMediaPost)->handle($user, $stream, [
             'platform' => $platform,
-            'body' => $this->body($stream, $platform),
+            'body' => $this->body($stream, $platform, $this->templateFor($stream, $platform)),
             'link_card' => [
                 'uri' => $stream->url(),
                 'title' => $stream->title_label,
@@ -49,6 +50,18 @@ final class ShareLiveStream
                 'thumbnail' => $stream->thumbnailUrl(),
             ],
         ]);
+    }
+
+    private function ruleFor(LiveStream $stream): ?StreamCategoryRule
+    {
+        return StreamCategoryRule::query()
+            ->with('templates')
+            ->firstWhere('category_id', $stream->category_id);
+    }
+
+    private function templateFor(LiveStream $stream, SocialPlatform $platform): string
+    {
+        return $this->ruleFor($stream)?->templateFor($platform) ?? $platform->liveStreamTemplate();
     }
 
     private function outcome(SocialMediaPost $post): string
@@ -60,9 +73,9 @@ final class ShareLiveStream
      * The title is the only part long enough to trim, so it gives way when the
      * template would run past the platform's character limit.
      */
-    private function body(LiveStream $stream, SocialPlatform $platform): string
+    private function body(LiveStream $stream, SocialPlatform $platform, string $template): string
     {
-        $render = fn (string $title): string => strtr($platform->liveStreamTemplate(), [
+        $render = fn (string $title): string => strtr($template, [
             '{title}' => $title,
             '{category}' => $stream->category_label,
             '{url}' => $stream->url(),

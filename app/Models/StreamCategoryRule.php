@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Enums\SocialPlatform;
 use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Which platforms a go live post goes to when streaming a Twitch category.
+ * Which platforms a go live post goes to when streaming a Twitch category, and
+ * any post templates that replace the platform's own for this category.
  */
 class StreamCategoryRule extends Model
 {
@@ -22,6 +24,16 @@ class StreamCategoryRule extends Model
         return [
             'platforms' => AsEnumCollection::of(SocialPlatform::class),
         ];
+    }
+
+    public function templates(): HasMany
+    {
+        return $this->hasMany(StreamCategoryTemplate::class);
+    }
+
+    public function templateFor(SocialPlatform $platform): ?string
+    {
+        return $this->templates->firstWhere('platform', $platform)?->template;
     }
 
     public function allows(SocialPlatform $platform): bool

@@ -167,7 +167,7 @@ it('skips bluesky when the category rule has it switched off', function () {
 });
 
 it('skips bluesky when it is not connected', function () {
-    SocialPlatform::BLUESKY->setEnabled(true);
+    SocialPlatform::BLUESKY->settings()->fill(['enabled' => true])->save();
     StreamCategoryRule::factory()->minecraft()->create();
 
     fakeTwitchLiveCheck(helixStream());
@@ -229,7 +229,7 @@ function helixStream(array $overrides = []): array
 
 function enableBluesky(User $user): void
 {
-    SocialPlatform::BLUESKY->setEnabled(true);
+    SocialPlatform::BLUESKY->settings()->fill(['enabled' => true])->save();
 
     Connection::factory()->bluesky()->for($user)->create();
 }
