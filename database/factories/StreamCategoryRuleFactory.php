@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\SocialPlatform;
 use App\Models\StreamCategoryRule;
+use App\Models\StreamCategoryTemplate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -30,6 +31,14 @@ class StreamCategoryRuleFactory extends Factory
             'category_id' => '27471',
             'category_name' => 'Minecraft',
         ]);
+    }
+
+    public function withTemplate(string $template, SocialPlatform $platform = SocialPlatform::BLUESKY): static
+    {
+        return $this->has(StreamCategoryTemplate::factory()->state([
+            'platform' => $platform,
+            'template' => $template,
+        ]), 'templates');
     }
 
     public function withoutPlatforms(): static

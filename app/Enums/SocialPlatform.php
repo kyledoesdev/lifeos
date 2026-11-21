@@ -4,14 +4,11 @@ namespace App\Enums;
 
 use App\Actions\Api\Bluesky\CreatePost;
 use App\Contracts\PublishesSocialMediaPosts;
-use App\Enums\Concerns\Toggleable;
+use App\Models\SocialPlatformSetting;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
 
 enum SocialPlatform: string
 {
-    use Toggleable;
-
     case BLUESKY = 'bluesky';
 
     public function label(): string
@@ -51,29 +48,28 @@ enum SocialPlatform: string
         return $user->connections->contains('type', $connectionType->value);
     }
 
-    public function liveStreamTemplate(): string
+    public function settings(): SocialPlatformSetting
     {
-        return Cache::get("social.{$this->value}.live_stream_template") ?? match ($this) {
-            self::BLUESKY => "🔴 I'm live on Twitch!\n\n{title}\nPlaying: {category}\n\n{url}",
-        };
+        return SocialPlatformSetting::query()->firstOrNew(['platform' => $this]);
+    }
+
+    public function enabled(): bool
+    {
+        return $this->settings()->enabled;
     }
 
     /**
-     * Passing null drops the custom template and falls back to the default.
+     * The platform wide template, used when the stream's category has none of its own.
      */
-    public function setLiveStreamTemplate(?string $template): void
+    public function liveStreamTemplate(): string
     {
-        if ($template === null) {
-            Cache::forget("social.{$this->value}.live_stream_template");
-
-            return;
-        }
-
-        Cache::forever("social.{$this->value}.live_stream_template", $template);
+        return $this->settings()->live_stream_template ?? $this->defaultLiveStreamTemplate();
     }
 
-    protected function toggleKey(): string
+    public function defaultLiveStreamTemplate(): string
     {
-        return "social.{$this->value}.enabled";
+        return match ($this) {
+            self::BLUESKY => "🔴 I'm live on Twitch!\n\n{title}\nPlaying: {category}\n\n{url}",
+        };
     }
 }

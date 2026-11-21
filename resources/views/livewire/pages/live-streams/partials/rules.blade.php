@@ -31,6 +31,10 @@
                             @endif
 
                             <span class="whitespace-nowrap">{{ $rule->category_name }}</span>
+
+                            @if ($rule->templates->isNotEmpty())
+                                <flux:badge size="sm" color="sky">Custom post</flux:badge>
+                            @endif
                         </div>
                     </flux:table.cell>
 
@@ -43,7 +47,15 @@
                         </flux:table.cell>
                     @endforeach
 
-                    <flux:table.cell>
+                    <flux:table.cell class="flex gap-2">
+                        <flux:button
+                            size="sm"
+                            icon="pencil-square"
+                            inset="top bottom"
+                            wire:click="editTemplate({{ $rule->id }})"
+                            aria-label="Edit the go live post for {{ $rule->category_name }}"
+                        />
+
                         <flux:button
                             variant="danger"
                             size="sm"
@@ -123,4 +135,6 @@
             </div>
         @endif
     </flux:modal>
+
+    @include('livewire.pages.live-streams.partials.category-template-modal')
 </flux:card>

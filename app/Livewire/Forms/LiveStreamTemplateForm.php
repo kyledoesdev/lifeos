@@ -47,14 +47,14 @@ class LiveStreamTemplateForm extends Form
     {
         $this->validateOnly("templates.{$platform->value}");
 
-        $platform->setLiveStreamTemplate($this->templates[$platform->value]);
+        $platform->settings()->fill(['live_stream_template' => $this->templates[$platform->value]])->save();
 
         Flux::toast(variant: 'success', text: "{$platform->label()} template saved!", duration: 3000);
     }
 
     public function restoreDefault(SocialPlatform $platform): void
     {
-        $platform->setLiveStreamTemplate(null);
+        $platform->settings()->fill(['live_stream_template' => null])->save();
 
         $this->templates[$platform->value] = $platform->liveStreamTemplate();
 
