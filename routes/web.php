@@ -51,6 +51,8 @@ Route::livewire('/3d_printing', ShowPrinting::class)->name('3d_printing');
 
 Route::get('/asset/{slug}', AssetController::class)->name('asset');
 
+Route::livewire('/beans', ShowBeansStats::class)->name('beans_stats');
+
 Route::middleware(Authenticate::class)->group(function () {
     Route::livewire('/dashboard', Dashboard::class)->name('dashboard');
 
@@ -76,7 +78,6 @@ Route::middleware(Authenticate::class)->group(function () {
 
     Route::livewire('/weather_report/edit', EditWeatherReport::class)->name('weather_report.edit');
     Route::livewire('/live_streams/edit', EditLiveStreams::class)->name('live_streams.edit');
-    Route::livewire('/beans', ShowBeansStats::class)->name('beans_stats');
 });
 
 require __DIR__.'/auth.php';

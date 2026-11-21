@@ -44,23 +44,16 @@
                 <div>
                     <flux:heading size="lg">{{ $this->channel->label }}</flux:heading>
                     <flux:text class="mt-1">
-                        {{ $this->channel->synced_at ? 'Synced '.$this->channel->synced_at->diffForHumans() : 'Not synced yet' }}
+                        {{ $this->channel->synced_at ? 'Last updated: '.$this->channel->synced_at->diffForHumans() : 'Not synced yet' }}
                     </flux:text>
                 </div>
 
-                <flux:button wire:click="sync" size="sm" icon="arrow-path" :disabled="! $this->hasBotToken">
-                    Sync now
-                </flux:button>
+                @auth
+                    <flux:button wire:click="sync" size="sm" icon="arrow-path" :disabled="! $this->hasBotToken">
+                        Sync now
+                    </flux:button>
+                @endauth
             </div>
-
-            @if (! $this->channel->backfilled_at && $this->channel->synced_at)
-                <flux:callout variant="secondary" icon="information-circle" class="mt-4">
-                    <flux:callout.text>
-                        Older history is still left to read. Press Sync again, or run
-                        <code>php artisan discord:sync-voice-messages</code> to read it all in one go.
-                    </flux:callout.text>
-                </flux:callout>
-            @endif
 
             @if ($stats['totals']['missing_durations'] > 0)
                 <flux:callout variant="warning" icon="exclamation-triangle" class="mt-4">
