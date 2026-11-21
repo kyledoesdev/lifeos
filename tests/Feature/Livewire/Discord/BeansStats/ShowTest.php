@@ -17,10 +17,25 @@ beforeEach(function () {
     $this->channel = DiscordChannel::query()->sole();
 });
 
-it('gates the beans stats page behind auth', function () {
+it('shows the stats to guests without the sync button', function () {
     auth()->logout();
 
-    $this->get(route('beans_stats'))->assertRedirect(route('login'));
+    DiscordVoiceMessage::factory()->for($this->channel, 'channel')->by(1, 'sam', 'Sam')->lasting(20.0)->create();
+
+    $this->get(route('beans_stats'))
+        ->assertOk()
+        ->assertSee('Sam')
+        ->assertDontSee('Sync now');
+});
+
+it('only lets signed in users sync', function () {
+    auth()->logout();
+
+    Livewire::test(Show::class)
+        ->call('sync')
+        ->assertForbidden();
+
+    Http::assertNothingSent();
 });
 
 it('loads the seeded channel and links from the dashboard', function () {
@@ -81,6 +96,22 @@ it('pulls new voice messages when synced', function () {
         ->and($this->channel->fresh())
         ->newest_message_id->toBe(1003)
         ->synced_at->not->toBeNull();
+});
+
+it('keeps showing cached stats until the channel syncs again', function () {
+    $this->channel->update(['synced_at' => now()->subHour()]);
+
+    DiscordVoiceMessage::factory()->for($this->channel, 'channel')->by(1, 'sam', 'Sam')->lasting(20.0)->create();
+
+    $this->get(route('beans_stats'))->assertSee('Sam')->assertDontSee('Riley');
+
+    DiscordVoiceMessage::factory()->for($this->channel, 'channel')->by(2, 'riley', 'Riley')->lasting(20.0)->create();
+
+    $this->get(route('beans_stats'))->assertDontSee('Riley');
+
+    $this->channel->update(['synced_at' => now()]);
+
+    $this->get(route('beans_stats'))->assertSee('Riley');
 });
 
 it('warns when voice messages have no length', function () {

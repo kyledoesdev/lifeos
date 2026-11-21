@@ -154,7 +154,7 @@ final class SyncVoiceMessages
             'author_username' => $message['author']['username'],
             'author_display_name' => $message['author']['global_name'] ?? null,
             'duration_seconds' => $duration !== null ? round((float) $duration, 2) : null,
-            'sent_at' => Carbon::parse($message['timestamp'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s'),
+            'sent_at' => Carbon::parse($message['timestamp'])->utc()->format('Y-m-d H:i:s'),
         ];
     }
 

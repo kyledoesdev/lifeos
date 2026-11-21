@@ -10,6 +10,7 @@ use Carbon\CarbonInterval;
 use Flux\Flux;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -37,10 +38,25 @@ class Show extends Component
         return DiscordChannel::query()->oldest('id')->first();
     }
 
+    /**
+     * Messages only change when the channel syncs, so the stats are cached until
+     * the next sync. The sync time is part of the key, which makes any sync (the
+     * nightly one, the command or the button) show fresh numbers right away.
+     */
     #[Computed]
     public function stats(): ?array
     {
-        return $this->channel ? (new BuildVoiceMessageStats)->handle($this->channel, $this->period) : null;
+        $channel = $this->channel;
+
+        if (! $channel) {
+            return null;
+        }
+
+        return Cache::remember(
+            "beans-stats.{$channel->id}.{$this->period}.{$channel->synced_at?->timestamp}",
+            now()->addDay(),
+            fn (): array => (new BuildVoiceMessageStats)->handle($channel, $this->period),
+        );
     }
 
     #[Computed]
@@ -56,8 +72,13 @@ class Show extends Component
         }
     }
 
+    /**
+     * The page is public so friends can see it, but only a signed in user can sync.
+     */
     public function sync(): void
     {
+        abort_unless(auth()->check(), 403);
+
         $channel = $this->channel ?? abort(404);
 
         if (! $this->hasBotToken) {

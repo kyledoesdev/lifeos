@@ -3,6 +3,8 @@
 use App\Actions\Discord\SyncVoiceMessages;
 use App\Models\DiscordChannel;
 use App\Models\DiscordVoiceMessage;
+use Illuminate\Console\Scheduling\Event;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
@@ -147,6 +149,16 @@ it('reads each channel with its own bot\'s token', function () {
 
     Http::assertSent(fn (Request $request) => $request->hasHeader('Authorization', 'Bot songrank-bot-token'));
     Http::assertNotSent(fn (Request $request) => $request->hasHeader('Authorization', 'Bot test-bot-token'));
+});
+
+it('syncs every night at 9pm Eastern', function () {
+    $event = collect(app(Schedule::class)->events())
+        ->first(fn (Event $event): bool => str_contains($event->command ?? '', 'discord:sync-voice-messages'));
+
+    expect($event)->not->toBeNull()
+        ->expression->toBe('0 21 * * *')
+        ->timezone->toBe('America/New_York')
+        ->withoutOverlapping->toBeTrue();
 });
 
 it('starts over with --fresh', function () {
