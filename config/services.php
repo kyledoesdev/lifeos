@@ -52,6 +52,9 @@ return [
         'royalty' => [
             'beans' => [
                 'webhook_url' => env('DISCORD_ROYALTY_BEANS_WEBHOOK_URL'),
+                'bot' => [
+                    'token' => env('DISCORD_ROYALTY_BEANS_BOT_TOKEN'),
+                ],
             ],
             'weather-report' => [
                 'webhook_url' => env('DISCORD_ROYALTY_WEATHERREPORT_WEBHOOK_URL'),

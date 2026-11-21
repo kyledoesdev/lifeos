@@ -16,6 +16,7 @@ use App\Livewire\Media\Music\Edit as EditMusic;
 use App\Livewire\Media\Music\Show as ShowMusic;
 use App\Livewire\Media\Tv\Edit as EditTv;
 use App\Livewire\Media\Tv\Show as ShowTv;
+use App\Livewire\Pages\Discord\BeansStats\Show as ShowBeansStats;
 use App\Livewire\Pages\LiveStreams\Edit as EditLiveStreams;
 use App\Livewire\Pages\Technologies\Edit as EditTechnologies;
 use App\Livewire\Pages\Technologies\Show as ShowTechnologies;
@@ -49,6 +50,8 @@ Route::livewire('/gallery', Gallery::class)->name('gallery');
 Route::livewire('/3d_printing', ShowPrinting::class)->name('3d_printing');
 
 Route::get('/asset/{slug}', AssetController::class)->name('asset');
+
+Route::livewire('/beans', ShowBeansStats::class)->name('beans_stats');
 
 Route::middleware(Authenticate::class)->group(function () {
     Route::livewire('/dashboard', Dashboard::class)->name('dashboard');

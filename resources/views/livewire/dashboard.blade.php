@@ -82,6 +82,12 @@
                             <span>Live Streams</span>
                         </flux:card>
                     </a>
+                    <a href="{{ route('beans_stats') }}">
+                        <flux:card class="flex space-x-2">
+                            <flux:icon.microphone />
+                            <span>Royal Tea Stats</span>
+                        </flux:card>
+                    </a>
                     <a href="{{ route('weather_report.edit') }}">
                         <flux:card class="flex space-x-2">
                             <flux:icon.cloud />
